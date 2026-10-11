@@ -21,6 +21,7 @@
   body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
   main { max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; }
   header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .header-right { display: flex; align-items: center; gap: 8px; }
   h1 { font-size: 22px; margin: 0; }
   h2 { font-size: 15px; margin: 0; }
   .sub { color: var(--muted); font-size: 13px; }
@@ -39,6 +40,7 @@
   button:hover:not(:disabled), a.btn:hover { border-color: var(--accent); }
   button:disabled { opacity: .45; cursor: default; }
   button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; padding: 8px 18px; }
+  button.lang { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 99px; }
   .pill { font-size: 13px; padding: 3px 10px; border-radius: 99px; background: var(--bg); border: 1px solid var(--border); white-space: nowrap; }
   .pill.on { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
   .pill.busy { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
@@ -74,54 +76,57 @@
   <header>
     <div>
       <h1>yt-wlt</h1>
-      <div class="sub">YouTube Whisper Local Transcribe · 100 % local, Whisper sur GPU</div>
+      <div class="sub" data-i18n="tagline">YouTube Whisper Local Transcribe · 100 % local, Whisper sur GPU</div>
     </div>
-    <span id="model-pill" class="pill">Modèle déchargé</span>
+    <div class="header-right">
+      <span id="model-pill" class="pill"></span>
+      <button id="lang" class="lang"></button>
+    </div>
   </header>
 
-  <div id="offline" class="hidden">Serveur arrêté : relance <code>lancer.bat</code> (ou <code>lancer.sh</code>).</div>
+  <div id="offline" class="hidden" data-i18n-html="offline"></div>
 
   <section class="card">
-    <h2>Vidéos</h2>
-    <textarea id="urls" placeholder="Un lien par ligne (vidéo ou playlist YouTube)" spellcheck="false"></textarea>
+    <h2 data-i18n="videos"></h2>
+    <textarea id="urls" data-i18n-ph="urls_ph" spellcheck="false"></textarea>
     <label class="opt"><input type="checkbox" id="turbo">
-      <span>Turbo<small>large-v3-turbo : environ 2× plus rapide, un peu moins précis</small></span></label>
+      <span><span data-i18n="turbo"></span><small data-i18n="turbo_hint"></small></span></label>
     <label class="opt"><input type="checkbox" id="auto-subs">
-      <span>Sous-titres auto YouTube<small>instantané, mais moins fiable et sans ponctuation ; Whisper prend le relais s'il n'y en a pas</small></span></label>
-    <p class="note">Les sous-titres faits par le créateur dans la langue de la vidéo sont toujours utilisés en priorité.</p>
+      <span><span data-i18n="auto_subs"></span><small data-i18n="auto_subs_hint"></small></span></label>
+    <p class="note" data-i18n="creator_note"></p>
     <div class="folder">
-      <span class="sub">Dossier de sortie</span>
+      <span class="sub" data-i18n="out_dir"></span>
       <code id="out-dir">…</code>
-      <button id="choose-folder">Choisir…</button>
+      <button id="choose-folder" data-i18n="choose"></button>
     </div>
-    <button id="submit" class="primary">Transcrire</button>
+    <button id="submit" class="primary" data-i18n="submit"></button>
   </section>
 
   <section class="card">
     <div class="row">
-      <h2>Modèle</h2>
+      <h2 data-i18n="model"></h2>
       <span id="model-detail" class="sub"></span>
     </div>
     <label class="opt"><input type="checkbox" id="auto-mode" checked>
-      <span>Mode auto<small>charge le modèle au début du lot et le décharge à la fin</small></span></label>
+      <span><span data-i18n="auto_mode"></span><small data-i18n="auto_mode_hint"></small></span></label>
     <div id="manual" class="manual hidden">
-      <button id="load">Charger le modèle</button>
-      <button id="unload">Décharger le modèle</button>
+      <button id="load"></button>
+      <button id="unload" data-i18n="unload"></button>
     </div>
     <div id="vram" class="vram hidden"><span id="vram-text"></span><div class="bar"><div id="vram-bar"></div></div></div>
   </section>
 
   <section class="card">
     <div class="row">
-      <h2>File</h2>
+      <h2 data-i18n="queue"></h2>
       <div class="actions" style="margin:0">
-        <button id="open-folder">Ouvrir le dossier</button>
-        <button id="clear">Effacer les terminés</button>
-        <button id="stop">Arrêter</button>
+        <button id="open-folder" data-i18n="open_folder"></button>
+        <button id="clear" data-i18n="clear"></button>
+        <button id="stop" data-i18n="stop"></button>
       </div>
     </div>
     <ul id="jobs"></ul>
-    <div id="empty" class="empty">Aucune vidéo pour l'instant.</div>
+    <div id="empty" class="empty" data-i18n="empty"></div>
   </section>
 </main>
 <div id="toast"></div>
@@ -133,6 +138,102 @@ const MODELS = { false: "large-v3", true: "large-v3-turbo" };
 let state = null;
 let toastTimer = null;
 
+// --- Langue : textes de l'interface. Le serveur envoie ses valeurs en français, traduites à l'affichage. ---
+const I18N = {
+  fr: {
+    tagline: "YouTube Whisper Local Transcribe · 100 % local, Whisper sur GPU",
+    offline: "Serveur arrêté : relance <code>lancer.bat</code> (ou <code>lancer.sh</code>).",
+    videos: "Vidéos", urls_ph: "Un lien par ligne (vidéo ou playlist YouTube)",
+    turbo: "Turbo", turbo_hint: "large-v3-turbo : environ 2× plus rapide, un peu moins précis",
+    auto_subs: "Sous-titres auto YouTube",
+    auto_subs_hint: "instantané, mais moins fiable et sans ponctuation ; Whisper prend le relais s'il n'y en a pas",
+    creator_note: "Les sous-titres faits par le créateur dans la langue de la vidéo sont toujours utilisés en priorité.",
+    out_dir: "Dossier de sortie", choose: "Choisir…", submit: "Transcrire",
+    model: "Modèle", auto_mode: "Mode auto", auto_mode_hint: "charge le modèle au début du lot et le décharge à la fin",
+    load: "Charger {m}", switch_model: "Passer à {m}", unload: "Décharger le modèle",
+    queue: "File", open_folder: "Ouvrir le dossier", clear: "Effacer les terminés", stop: "Arrêter",
+    empty: "Aucune vidéo pour l'instant.", text: "Texte", srt: "Sous-titres .srt", copy: "Copier le texte",
+    pill_loaded: "{m} chargé · {d}", pill_loading: "Chargement de {m}…", pill_unloaded: "Modèle déchargé",
+    model_error: "Erreur : {e}", vram: "VRAM : {u} / {t} Go", source: "Source : {s}",
+    copied: "Texte copié", copy_failed: "Copie impossible", need_link: "Colle au moins un lien",
+    unreachable: "Serveur injoignable", error_code: "Erreur {c}",
+    choose_hint: "Choisis le dossier dans la fenêtre qui vient de s'ouvrir", out_dir_set: "Dossier de sortie : {p}",
+    prompt_dir: "Chemin complet du dossier de sortie :", lang_button: "EN", lang_title: "Switch to English",
+  },
+  en: {
+    tagline: "YouTube Whisper Local Transcribe · 100% local, Whisper on GPU",
+    offline: "Server stopped: restart <code>lancer.bat</code> (or <code>lancer.sh</code>).",
+    videos: "Videos", urls_ph: "One link per line (YouTube video or playlist)",
+    turbo: "Turbo", turbo_hint: "large-v3-turbo: about 2× faster, slightly less accurate",
+    auto_subs: "YouTube auto-captions",
+    auto_subs_hint: "instant, but less reliable and unpunctuated; Whisper takes over when there are none",
+    creator_note: "Subtitles made by the creator in the video's language always come first.",
+    out_dir: "Output folder", choose: "Choose…", submit: "Transcribe",
+    model: "Model", auto_mode: "Auto mode", auto_mode_hint: "loads the model at the start of a batch and unloads it at the end",
+    load: "Load {m}", switch_model: "Switch to {m}", unload: "Unload model",
+    queue: "Queue", open_folder: "Open folder", clear: "Clear finished", stop: "Stop",
+    empty: "No videos yet.", text: "Text", srt: ".srt subtitles", copy: "Copy text",
+    pill_loaded: "{m} loaded · {d}", pill_loading: "Loading {m}…", pill_unloaded: "Model unloaded",
+    model_error: "Error: {e}", vram: "VRAM: {u} / {t} GB", source: "Source: {s}",
+    copied: "Text copied", copy_failed: "Copy failed", need_link: "Paste at least one link",
+    unreachable: "Server unreachable", error_code: "Error {c}",
+    choose_hint: "Pick the folder in the window that just opened", out_dir_set: "Output folder: {p}",
+    prompt_dir: "Full path of the output folder:", lang_button: "FR", lang_title: "Passer en français",
+  },
+};
+const STATUS_EN = {
+  "en attente": "queued", "analyse": "analyzing", "sous-titres": "subtitles", "chargement du modèle": "loading model",
+  "téléchargement du modèle (premier usage)": "downloading model (first use)", "téléchargement audio": "downloading audio",
+  "transcription": "transcribing", "terminé": "done", "erreur": "error", "annulé": "cancelled",
+};
+// Messages du serveur traduits en anglais ; les erreurs techniques (yt-dlp...) restent telles quelles
+const SERVER_EN = [
+  [/^téléchargement audio, essai (\d+)\/(\d+)$/, "downloading audio, attempt $1/$2"],
+  [/^sous-titres du créateur/, "creator subtitles"],
+  [/^sous-titres auto YouTube/, "YouTube auto-captions"],
+  [/^Playlist : (\d+) vidéos ajoutées à la file$/, "Playlist: $1 videos added to the queue"],
+  [/^sous-titres inutilisables \((.*)\), repli sur Whisper$/, "subtitles unusable ($1), falling back to Whisper"],
+  [/^Whisper a échoué \((.*)\), repli sur les sous-titres auto$/, "Whisper failed ($1), fell back to auto-captions"],
+  [/^lien invalide$/, "invalid link"],
+  [/^occupé : attends la fin du travail en cours$/, "busy: wait for the current job to finish"],
+  [/^un sélecteur de dossier est déjà ouvert$/, "a folder picker is already open"],
+  [/^sélecteur de dossier indisponible$/, "folder picker unavailable"],
+  [/^chemin absolu attendu.*$/, "absolute path expected (e.g. C:\\Users\\...\\Transcripts)"],
+  [/^dossier inutilisable : (.*)$/, "unusable folder: $1"],
+];
+
+function storedLang() {
+  try { const v = localStorage.getItem("lang"); if (v === "fr" || v === "en") return v; } catch { /* stockage indisponible */ }
+  return (navigator.language || "").toLowerCase().startsWith("fr") ? "fr" : "en";
+}
+let lang = storedLang();
+
+function t(key, vars = {}) {
+  return (I18N[lang][key] || I18N.fr[key] || key).replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "");
+}
+function fromServer(text) {
+  if (!text || lang === "fr") return text;
+  if (STATUS_EN[text]) return STATUS_EN[text];
+  for (const [pattern, replacement] of SERVER_EN) if (pattern.test(text)) return text.replace(pattern, replacement);
+  return text;
+}
+
+function applyStatic(root = document) {
+  root.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
+  root.querySelectorAll("[data-i18n-ph]").forEach((el) => { el.placeholder = t(el.dataset.i18nPh); });
+  root.querySelectorAll("[data-i18n-html]").forEach((el) => { el.innerHTML = t(el.dataset.i18nHtml); });
+}
+function setLang(next) {
+  lang = next;
+  try { localStorage.setItem("lang", lang); } catch { /* stockage indisponible */ }
+  document.documentElement.lang = lang;
+  $("#lang").textContent = t("lang_button");
+  $("#lang").title = t("lang_title");
+  applyStatic();
+  if (state) { renderModel(); renderJobs(); } else { $("#model-pill").textContent = t("pill_unloaded"); }
+}
+
+// --- Affichage ---
 function toast(message) {
   const el = $("#toast");
   el.textContent = message;
@@ -152,13 +253,18 @@ async function post(path, body = {}) {
   try {
     const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const data = await r.json().catch(() => ({}));
-    if (!r.ok) toast(data.error || `Erreur ${r.status}`);
+    if (!r.ok) toast(fromServer(data.error) || t("error_code", { c: r.status }));
     refresh(false);
     return r.ok;
   } catch {
-    toast("Serveur injoignable");
+    toast(t("unreachable"));
     return false;
   }
+}
+
+function gb(mb) {
+  const value = (mb / 1024).toFixed(1);
+  return lang === "fr" ? value.replace(".", ",") : value;
 }
 
 function renderModel() {
@@ -167,23 +273,23 @@ function renderModel() {
   const pill = $("#model-pill");
   const device = m.device === "cuda" ? "GPU" : "CPU";
   pill.className = "pill" + (m.state === "chargé" ? " on" : m.state === "chargement" ? " busy" : "");
-  pill.textContent = m.state === "chargé" ? `${m.name} chargé · ${device}`
-    : m.state === "chargement" ? `Chargement de ${m.name}…` : "Modèle déchargé";
-  $("#model-detail").textContent = m.error ? `Erreur : ${m.error}` : "";
+  pill.textContent = m.state === "chargé" ? t("pill_loaded", { m: m.name, d: device })
+    : m.state === "chargement" ? t("pill_loading", { m: m.name }) : t("pill_unloaded");
+  $("#model-detail").textContent = m.error ? t("model_error", { e: m.error }) : "";
 
   $("#auto-mode").checked = state.auto_mode;
   $("#manual").classList.toggle("hidden", state.auto_mode);
   const wanted = MODELS[$("#turbo").checked];
   const blocked = state.busy || m.state === "chargement";
   $("#load").disabled = blocked || (m.state === "chargé" && m.name === wanted);
-  $("#load").textContent = m.state === "chargé" && m.name !== wanted ? `Passer à ${wanted}` : `Charger ${wanted}`;
+  $("#load").textContent = t(m.state === "chargé" && m.name !== wanted ? "switch_model" : "load", { m: wanted });
   $("#unload").disabled = blocked || m.state !== "chargé";
 
   const vram = state.vram;
   $("#vram").classList.toggle("hidden", !vram);
   if (vram) {
     const [used, total] = vram;
-    $("#vram-text").textContent = `VRAM : ${(used / 1024).toFixed(1).replace(".", ",")} / ${(total / 1024).toFixed(1).replace(".", ",")} Go`;
+    $("#vram-text").textContent = t("vram", { u: gb(used), t: gb(total) });
     $("#vram-bar").style.width = `${Math.min(100, (used / total) * 100)}%`;
   }
 }
@@ -200,16 +306,17 @@ function jobElement(job) {
     <div class="meta warn note"></div>
     <div class="meta err error"></div>
     <div class="actions hidden">
-      <a class="btn txt" target="_blank" rel="noopener">Texte</a>
-      <a class="btn srt" target="_blank" rel="noopener">Sous-titres .srt</a>
-      <button class="copy">Copier le texte</button>
+      <a class="btn txt" target="_blank" rel="noopener" data-i18n="text"></a>
+      <a class="btn srt" target="_blank" rel="noopener" data-i18n="srt"></a>
+      <button class="copy" data-i18n="copy"></button>
     </div>`;
+  applyStatic(li);
   li.querySelector(".copy").addEventListener("click", async () => {
     try {
       const text = await (await fetch(li.querySelector(".txt").getAttribute("href"))).text();
       await navigator.clipboard.writeText(text);
-      toast("Texte copié");
-    } catch { toast("Copie impossible"); }
+      toast(t("copied"));
+    } catch { toast(t("copy_failed")); }
   });
   return li;
 }
@@ -230,18 +337,18 @@ function renderJobs() {
     if (!li) li = jobElement(job);
     if (list.children[index] !== li) list.insertBefore(li, list.children[index] || null);
 
-    li.querySelector(".job-title").textContent = job.title || job.url;
+    li.querySelector(".job-title").textContent = fromServer(job.title) || job.url;
     setText(li.querySelector(".job-url"), job.title ? job.url : "");
     const chip = li.querySelector(".chip");
-    const pct = job.progress != null ? ` ${Math.round(job.progress * 100)} %` : "";
-    chip.textContent = job.status + pct;
+    const pct = job.progress != null ? ` ${Math.round(job.progress * 100)}${lang === "fr" ? " %" : "%"}` : "";
+    chip.textContent = fromServer(job.status) + pct;
     chip.className = "chip" + (ACTIVE.some((s) => job.status.startsWith(s)) ? " active" : job.status === "terminé" ? " ok" : job.status === "erreur" ? " err" : "");
     const bar = li.querySelector(".bar");
     bar.classList.toggle("hidden", job.progress == null);
     bar.firstElementChild.style.width = `${(job.progress || 0) * 100}%`;
-    setText(li.querySelector(".source"), job.source ? `Source : ${job.source}` : "");
-    setText(li.querySelector(".note"), job.note);
-    setText(li.querySelector(".error"), job.error);
+    setText(li.querySelector(".source"), job.source ? t("source", { s: fromServer(job.source) }) : "");
+    setText(li.querySelector(".note"), fromServer(job.note));
+    setText(li.querySelector(".error"), fromServer(job.error));
     const actions = li.querySelector(".actions");
     actions.classList.toggle("hidden", job.files.length < 2);
     if (job.files.length >= 2) {
@@ -273,14 +380,16 @@ async function refresh(schedule = true) {
   }
 }
 
+// --- Actions ---
 $("#turbo").checked = pref("turbo", false);
 $("#auto-subs").checked = pref("auto_subs", false);
 $("#turbo").addEventListener("change", (e) => { savePref("turbo", e.target.checked); if (state) renderModel(); });
 $("#auto-subs").addEventListener("change", (e) => savePref("auto_subs", e.target.checked));
+$("#lang").addEventListener("click", () => setLang(lang === "fr" ? "en" : "fr"));
 
 $("#submit").addEventListener("click", async () => {
   const urls = $("#urls").value.trim();
-  if (!urls) { toast("Colle au moins un lien"); return; }
+  if (!urls) { toast(t("need_link")); return; }
   if (await post("/api/jobs", { urls, turbo: $("#turbo").checked, auto_subs: $("#auto-subs").checked })) {
     $("#urls").value = "";
   }
@@ -295,26 +404,27 @@ $("#open-folder").addEventListener("click", () => post("/api/open-folder"));
 $("#choose-folder").addEventListener("click", async () => {
   const button = $("#choose-folder");
   button.disabled = true;
-  toast("Choisis le dossier dans la fenêtre qui vient de s'ouvrir");
+  toast(t("choose_hint"));
   try {
     const r = await fetch("/api/choose-folder", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
     const data = await r.json().catch(() => ({}));
     if (r.ok && data.out_dir) {
-      toast("Dossier de sortie : " + data.out_dir);
+      toast(t("out_dir_set", { p: data.out_dir }));
     } else if (data.unavailable) {
       // Pas de sélecteur natif (ex. Linux sans tkinter) : saisie du chemin
-      const typed = prompt("Chemin complet du dossier de sortie :", state ? state.out_dir : "");
+      const typed = prompt(t("prompt_dir"), state ? state.out_dir : "");
       if (typed) await post("/api/settings", { out_dir: typed });
     } else if (!r.ok) {
-      toast(data.error || `Erreur ${r.status}`);
+      toast(fromServer(data.error) || t("error_code", { c: r.status }));
     }
   } catch {
-    toast("Serveur injoignable");
+    toast(t("unreachable"));
   }
   button.disabled = false;
   refresh(false);
 });
 
+setLang(lang);
 refresh();
 </script>
 </body>

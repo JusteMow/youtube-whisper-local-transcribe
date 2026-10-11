@@ -1,64 +1,69 @@
 # youtube-whisper-local-transcribe (yt-wlt)
 
-Transcription 100 % locale de vidéos YouTube, dans une petite page web : on colle une liste de liens, on récupère un `.txt` (paragraphes) et un `.srt` (horodaté) par vidéo.
+**English** · [Français](README.fr.md)
 
-Pour chaque vidéo, dans cet ordre :
-1. **Sous-titres du créateur** dans la langue parlée, s'il y en a (instantané, fiables).
-2. **Sous-titres auto YouTube**, seulement si la case est cochée (instantané, mais peu fiables et sans ponctuation).
-3. **Whisper** en local (faster-whisper large-v3 sur GPU NVIDIA) : quelques minutes par vidéo, texte ponctué et fidèle.
+100% local transcription of YouTube videos from a small web page: paste a list of links, get a `.txt` (paragraphs) and a `.srt` (timestamped) per video.
 
-Si Whisper échoue, les sous-titres auto servent de repli quand ils existent.
+![The yt-wlt interface: queue of videos with their source, progress and output links](docs/screenshot-en.png)
+
+For each video, in this order:
+1. **Creator subtitles** in the spoken language, if any (instant, reliable).
+2. **YouTube auto-captions**, only if the box is ticked (instant, but unreliable and unpunctuated).
+3. **Whisper**, locally (faster-whisper large-v3 on an NVIDIA GPU): a few minutes per video, punctuated and accurate text.
+
+If Whisper fails, auto-captions are used as a fallback when they exist.
 
 ## Installation
 
 | | Windows | Linux |
 |---|---|---|
-| Installer / mettre à jour | `install.bat` | `./install.sh` |
-| Lancer l'interface | `lancer.bat` | `./lancer.sh` |
+| Install / update | `install.bat` | `./install.sh` |
+| Start the interface | `lancer.bat` | `./lancer.sh` |
 
-L'installeur installe [uv](https://docs.astral.sh/uv/) s'il manque, crée `.venv` (Python 3.11) et installe faster-whisper, yt-dlp, son runtime JavaScript (deno, embarqué) et les bibliothèques CUDA. Ni Node.js ni ffmpeg ne sont requis. **Relancer l'installeur met yt-dlp à jour** : c'est le geste à faire quand YouTube se met à renvoyer des erreurs 403.
+The installer installs [uv](https://docs.astral.sh/uv/) if missing, creates `.venv` (Python 3.11) and installs faster-whisper, yt-dlp, its JavaScript runtime (deno, bundled) and the CUDA libraries. Neither Node.js nor ffmpeg is required. **Running the installer again updates yt-dlp**: that is the fix when YouTube starts answering with 403 errors.
 
-Sans GPU NVIDIA, Whisper tourne sur CPU (lent). Le modèle se télécharge au premier usage dans le cache Hugging Face (~3 Go pour large-v3, ~1,6 Go pour turbo).
+Without an NVIDIA GPU, Whisper runs on the CPU (slow). The model is downloaded on first use into the Hugging Face cache (~3 GB for large-v3, ~1.6 GB for turbo).
 
-## L'interface (http://127.0.0.1:8765)
+## The interface (http://127.0.0.1:8765)
 
-- **Vidéos** : un lien par ligne (vidéo ou playlist, une playlist est développée en ses vidéos), ou un ID de vidéo seul.
-- **Turbo** : large-v3-turbo, environ 2× plus rapide, un peu moins précis.
-- **Sous-titres auto YouTube** : les accepter au lieu de lancer Whisper.
-- **Dossier de sortie** : *Choisir…* ouvre le sélecteur de dossiers du système ; le choix est mémorisé dans `settings.json` et vaut pour les vidéos ajoutées ensuite (sans sélecteur disponible, la page demande le chemin).
-- **Mode auto** (par défaut) : le modèle est chargé au début du lot et déchargé à la fin. Décoché : boutons *Charger* / *Décharger*, le modèle reste en mémoire entre les lots.
-- **File** : avancement par vidéo, source utilisée, liens *Texte* / *Sous-titres .srt*, *Copier le texte*, *Ouvrir le dossier*, *Arrêter*.
+- **Videos**: one link per line (video or playlist; a playlist is expanded into its videos), or a bare video ID.
+- **Turbo**: large-v3-turbo, about 2× faster, slightly less accurate.
+- **YouTube auto-captions**: accept them instead of running Whisper.
+- **Output folder**: *Choose…* opens the system folder picker; the choice is saved in `settings.json` and applies to videos added afterwards (without a picker, the page asks for the path).
+- **Auto mode** (default): the model is loaded at the start of a batch and unloaded at the end. Unticked: *Load* / *Unload* buttons, the model stays in memory between batches.
+- **Queue**: per-video progress, source used, *Text* / *.srt subtitles* links, *Copy text*, *Open folder*, *Stop*.
+- **Language**: FR / EN button at the top right (browser language by default, choice remembered).
 
-Le serveur n'écoute que sur la machine locale. Fermer la fenêtre de `lancer.bat` (ou Ctrl+C) l'arrête ; le relancer alors qu'il tourne déjà arrête l'ancienne instance (travail en cours compris) et en démarre une neuve. `kill_instances.bat` fait ce nettoyage seul, sans relance. Autre port : `lancer.bat --port 8766`.
+The server only listens on the local machine. Closing the `lancer.bat` window (or Ctrl+C) stops it; starting it again while it runs stops the old instance (including the current job) and starts a fresh one. `kill_instances.bat` does that cleanup alone, without restarting. Other port: `lancer.bat --port 8766`.
 
-Sorties dans le dossier choisi (par défaut `transcripts\`) : `<titre> [<id>].txt` et `.srt`.
+Output goes to the chosen folder (`transcripts\` by default): `<title> [<id>].txt` and `.srt`.
 
-## Ligne de commande
+## Command line
 
-Whisper seul, sans file ni sous-titres (pratique pour l'appeler depuis un autre script) :
+Whisper only, without queue or subtitles (handy to call from another script):
 
 ```bat
-transcribe.bat <URL>                 :: sortie transcripts\<id>.txt et .srt
-transcribe.bat <URL> -l fr           :: force la langue (sinon détection auto)
+transcribe.bat <URL>                 :: writes transcripts\<id>.txt and .srt
+transcribe.bat <URL> -l fr           :: force the language (auto-detected otherwise)
 transcribe.bat <URL> -m large-v3-turbo
-transcribe.bat C:\chemin\audio.m4a   :: fichier local
+transcribe.bat C:\path\audio.m4a     :: local file
 ```
 
-## Fichiers
+## Files
 
-- `core.py` : moteur partagé (yt-dlp, sous-titres, modèle Whisper, écriture des sorties).
-- `server.py` + `web/index.html` : interface web (bibliothèque standard Python, aucune dépendance front).
-- `transcribe.py` : ligne de commande.
+- `core.py`: shared engine (yt-dlp, subtitles, Whisper model, output writing).
+- `server.py` + `web/index.html`: web interface (Python standard library, no front-end dependency).
+- `transcribe.py`: command line.
 
-## Pièges
+## Troubleshooting
 
-- **HTTP 403 au téléchargement** : YouTube refuse parfois un flux au hasard ; l'outil retente jusqu'à 3 fois avec une nouvelle extraction (statut « essai 2/3 »). Si ça échoue systématiquement, yt-dlp est trop vieux → relancer l'installeur.
-- **Vidéo doublée par YouTube** (pistes audio multiples) : la piste originale est transcrite, et seuls les sous-titres auto de la langue parlée sont acceptés (pas ceux du doublage).
-- **DLL CUDA introuvable** (`cublas64_12.dll`) : wheels `nvidia-cublas-cu12` / `nvidia-cudnn-cu12` absentes du venv → relancer l'installeur.
-- **Décharger le modèle** rend l'essentiel de la VRAM ; quelques centaines de Mo (contexte CUDA) restent pris tant que le serveur tourne.
+- **HTTP 403 on download**: YouTube sometimes refuses a stream at random; the tool retries up to 3 times with a fresh extraction (status "attempt 2/3"). If it fails every time, yt-dlp is outdated → run the installer again.
+- **Video dubbed by YouTube** (several audio tracks): the original track is transcribed, and only auto-captions in the spoken language are accepted (not those of the dub).
+- **CUDA DLL not found** (`cublas64_12.dll`): the `nvidia-cublas-cu12` / `nvidia-cudnn-cu12` wheels are missing from the venv → run the installer again.
+- **Unloading the model** frees most of the VRAM; a few hundred MB (CUDA context) stay in use while the server runs.
 
-## Licence et crédits
+## License and credits
 
-Code sous licence [MIT](LICENSE). S'appuie sur [faster-whisper](https://github.com/SYSTRAN/faster-whisper) (MIT), les modèles [Whisper](https://github.com/openai/whisper) d'OpenAI (MIT) et [yt-dlp](https://github.com/yt-dlp/yt-dlp) (Unlicense), installés par l'installeur et non redistribués ici.
+Code under the [MIT](LICENSE) license. Built on [faster-whisper](https://github.com/SYSTRAN/faster-whisper) (MIT), OpenAI's [Whisper](https://github.com/openai/whisper) models (MIT) and [yt-dlp](https://github.com/yt-dlp/yt-dlp) (Unlicense), installed by the installer and not redistributed here.
 
-Respecte les conditions d'utilisation de YouTube et les droits des créateurs : les transcriptions produites sont pour un usage personnel.
+Respect YouTube's terms of service and creators' rights: the transcripts produced are for personal use.
