@@ -1,0 +1,4 @@
+faster-whisper
+yt-dlp[default,deno]
+nvidia-cublas-cu12; sys_platform != "darwin"
+nvidia-cudnn-cu12>=9,<10; sys_platform != "darwin"

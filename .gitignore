@@ -1,0 +1,9 @@
+# Environnement Python (recréé par install.bat / install.sh)
+.venv/
+__pycache__/
+*.py[cod]
+
+# Données locales : transcriptions produites, dossier de sortie choisi, notes de travail
+transcripts/
+settings.json
+JOURNAL.md

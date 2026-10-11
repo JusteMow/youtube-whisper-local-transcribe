@@ -1,0 +1,3 @@
+# cmd exige des .bat en CRLF (sinon les labels et goto cassent) ; bash exige des .sh en LF
+*.bat text eol=crlf
+*.sh text eol=lf

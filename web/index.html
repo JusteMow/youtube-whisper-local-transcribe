@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>yt-wlt · Transcription YouTube</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #1d2330; --muted: #677085; --border: #e1e4ea;
+    --accent: #2f6fde; --accent-soft: #e6eefc; --ok: #1f8a4c; --ok-soft: #e3f4ea;
+    --err: #c2382f; --err-soft: #fbe9e7; --warn: #9a6400; --warn-soft: #fdf3dc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171d; --card: #1c2028; --text: #e6e9ef; --muted: #98a1b3; --border: #2c323d;
+      --accent: #6b9cf5; --accent-soft: #1f2b43; --ok: #5cc98a; --ok-soft: #173024;
+      --err: #f07b72; --err-soft: #3a1d1b; --warn: #e3b25a; --warn-soft: #362a12;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; }
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  h1 { font-size: 22px; margin: 0; }
+  h2 { font-size: 15px; margin: 0; }
+  .sub { color: var(--muted); font-size: 13px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  textarea { width: 100%; min-height: 110px; resize: vertical; padding: 10px; border: 1px solid var(--border); border-radius: 8px;
+             background: var(--bg); color: var(--text); font: 14px/1.45 ui-monospace, Consolas, monospace; margin: 10px 0; }
+  label.opt { display: flex; gap: 8px; align-items: flex-start; margin: 6px 0; cursor: pointer; }
+  label.opt input { margin-top: 4px; }
+  label.opt small { display: block; color: var(--muted); }
+  .note { color: var(--muted); font-size: 13px; margin: 8px 0 12px; }
+  .folder { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 14px; }
+  .folder code { font-size: 13px; background: var(--bg); border: 1px solid var(--border); padding: 3px 8px; border-radius: 6px; overflow-wrap: anywhere; }
+  button, a.btn { font: inherit; font-size: 14px; border: 1px solid var(--border); background: var(--card); color: var(--text);
+                  padding: 6px 12px; border-radius: 7px; cursor: pointer; text-decoration: none; display: inline-block; }
+  button:hover:not(:disabled), a.btn:hover { border-color: var(--accent); }
+  button:disabled { opacity: .45; cursor: default; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; padding: 8px 18px; }
+  .pill { font-size: 13px; padding: 3px 10px; border-radius: 99px; background: var(--bg); border: 1px solid var(--border); white-space: nowrap; }
+  .pill.on { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
+  .pill.busy { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+  .vram { margin-top: 10px; font-size: 13px; color: var(--muted); }
+  .bar { height: 6px; background: var(--bg); border-radius: 99px; overflow: hidden; margin-top: 6px; }
+  .bar > div { height: 100%; width: 0; background: var(--accent); transition: width .4s; }
+  .manual { display: flex; gap: 8px; margin-top: 10px; }
+  .hidden { display: none !important; }
+  ul { list-style: none; margin: 12px 0 0; padding: 0; }
+  li.job { border-top: 1px solid var(--border); padding: 12px 0; }
+  li.job:first-child { border-top: none; }
+  .job-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+  .job-title { font-weight: 600; overflow-wrap: anywhere; }
+  .job-url { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+  .chip { font-size: 12px; padding: 2px 9px; border-radius: 99px; white-space: nowrap; background: var(--bg); color: var(--muted); }
+  .chip.active { background: var(--accent-soft); color: var(--accent); }
+  .chip.ok { background: var(--ok-soft); color: var(--ok); }
+  .chip.err { background: var(--err-soft); color: var(--err); }
+  .meta { font-size: 13px; margin-top: 4px; }
+  .meta.warn { color: var(--warn); }
+  .meta.err { color: var(--err); }
+  .actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .actions .btn, .actions button { font-size: 13px; padding: 4px 10px; }
+  .empty { color: var(--muted); font-size: 14px; margin-top: 12px; }
+  #offline { background: var(--err-soft); color: var(--err); padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; }
+  #toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--text); color: var(--bg);
+           padding: 8px 16px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: calc(100% - 32px); }
+  #toast.show { opacity: .95; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>yt-wlt</h1>
+      <div class="sub">YouTube Whisper Local Transcribe · 100 % local, Whisper sur GPU</div>
+    </div>
+    <span id="model-pill" class="pill">Modèle déchargé</span>
+  </header>
+
+  <div id="offline" class="hidden">Serveur arrêté : relance <code>lancer.bat</code> (ou <code>lancer.sh</code>).</div>
+
+  <section class="card">
+    <h2>Vidéos</h2>
+    <textarea id="urls" placeholder="Un lien par ligne (vidéo ou playlist YouTube)" spellcheck="false"></textarea>
+    <label class="opt"><input type="checkbox" id="turbo">
+      <span>Turbo<small>large-v3-turbo : environ 2× plus rapide, un peu moins précis</small></span></label>
+    <label class="opt"><input type="checkbox" id="auto-subs">
+      <span>Sous-titres auto YouTube<small>instantané, mais moins fiable et sans ponctuation ; Whisper prend le relais s'il n'y en a pas</small></span></label>
+    <p class="note">Les sous-titres faits par le créateur dans la langue de la vidéo sont toujours utilisés en priorité.</p>
+    <div class="folder">
+      <span class="sub">Dossier de sortie</span>
+      <code id="out-dir">…</code>
+      <button id="choose-folder">Choisir…</button>
+    </div>
+    <button id="submit" class="primary">Transcrire</button>
+  </section>
+
+  <section class="card">
+    <div class="row">
+      <h2>Modèle</h2>
+      <span id="model-detail" class="sub"></span>
+    </div>
+    <label class="opt"><input type="checkbox" id="auto-mode" checked>
+      <span>Mode auto<small>charge le modèle au début du lot et le décharge à la fin</small></span></label>
+    <div id="manual" class="manual hidden">
+      <button id="load">Charger le modèle</button>
+      <button id="unload">Décharger le modèle</button>
+    </div>
+    <div id="vram" class="vram hidden"><span id="vram-text"></span><div class="bar"><div id="vram-bar"></div></div></div>
+  </section>
+
+  <section class="card">
+    <div class="row">
+      <h2>File</h2>
+      <div class="actions" style="margin:0">
+        <button id="open-folder">Ouvrir le dossier</button>
+        <button id="clear">Effacer les terminés</button>
+        <button id="stop">Arrêter</button>
+      </div>
+    </div>
+    <ul id="jobs"></ul>
+    <div id="empty" class="empty">Aucune vidéo pour l'instant.</div>
+  </section>
+</main>
+<div id="toast"></div>
+
+<script>
+const $ = (sel) => document.querySelector(sel);
+const ACTIVE = ["analyse", "sous-titres", "chargement du modèle", "téléchargement du modèle (premier usage)", "téléchargement audio", "transcription"];
+const MODELS = { false: "large-v3", true: "large-v3-turbo" };
+let state = null;
+let toastTimer = null;
+
+function toast(message) {
+  const el = $("#toast");
+  el.textContent = message;
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
+}
+
+function pref(key, fallback) {
+  try { const v = localStorage.getItem(key); return v === null ? fallback : v === "1"; } catch { return fallback; }
+}
+function savePref(key, value) {
+  try { localStorage.setItem(key, value ? "1" : "0"); } catch { /* stockage indisponible */ }
+}
+
+async function post(path, body = {}) {
+  try {
+    const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) toast(data.error || `Erreur ${r.status}`);
+    refresh(false);
+    return r.ok;
+  } catch {
+    toast("Serveur injoignable");
+    return false;
+  }
+}
+
+function renderModel() {
+  $("#out-dir").textContent = state.out_dir;
+  const m = state.model;
+  const pill = $("#model-pill");
+  const device = m.device === "cuda" ? "GPU" : "CPU";
+  pill.className = "pill" + (m.state === "chargé" ? " on" : m.state === "chargement" ? " busy" : "");
+  pill.textContent = m.state === "chargé" ? `${m.name} chargé · ${device}`
+    : m.state === "chargement" ? `Chargement de ${m.name}…` : "Modèle déchargé";
+  $("#model-detail").textContent = m.error ? `Erreur : ${m.error}` : "";
+
+  $("#auto-mode").checked = state.auto_mode;
+  $("#manual").classList.toggle("hidden", state.auto_mode);
+  const wanted = MODELS[$("#turbo").checked];
+  const blocked = state.busy || m.state === "chargement";
+  $("#load").disabled = blocked || (m.state === "chargé" && m.name === wanted);
+  $("#load").textContent = m.state === "chargé" && m.name !== wanted ? `Passer à ${wanted}` : `Charger ${wanted}`;
+  $("#unload").disabled = blocked || m.state !== "chargé";
+
+  const vram = state.vram;
+  $("#vram").classList.toggle("hidden", !vram);
+  if (vram) {
+    const [used, total] = vram;
+    $("#vram-text").textContent = `VRAM : ${(used / 1024).toFixed(1).replace(".", ",")} / ${(total / 1024).toFixed(1).replace(".", ",")} Go`;
+    $("#vram-bar").style.width = `${Math.min(100, (used / total) * 100)}%`;
+  }
+}
+
+function jobElement(job) {
+  const li = document.createElement("li");
+  li.className = "job";
+  li.dataset.id = job.id;
+  li.innerHTML = `
+    <div class="job-head"><span class="job-title"></span><span class="chip"></span></div>
+    <div class="job-url"></div>
+    <div class="bar hidden"><div></div></div>
+    <div class="meta source"></div>
+    <div class="meta warn note"></div>
+    <div class="meta err error"></div>
+    <div class="actions hidden">
+      <a class="btn txt" target="_blank" rel="noopener">Texte</a>
+      <a class="btn srt" target="_blank" rel="noopener">Sous-titres .srt</a>
+      <button class="copy">Copier le texte</button>
+    </div>`;
+  li.querySelector(".copy").addEventListener("click", async () => {
+    try {
+      const text = await (await fetch(li.querySelector(".txt").getAttribute("href"))).text();
+      await navigator.clipboard.writeText(text);
+      toast("Texte copié");
+    } catch { toast("Copie impossible"); }
+  });
+  return li;
+}
+
+function setText(el, text) {
+  el.textContent = text || "";
+  el.classList.toggle("hidden", !text);
+}
+
+function renderJobs() {
+  const list = $("#jobs");
+  const existing = new Map([...list.children].map((li) => [li.dataset.id, li]));
+  const ids = new Set(state.jobs.map((j) => j.id));
+  for (const [id, li] of existing) if (!ids.has(id)) li.remove();
+
+  state.jobs.forEach((job, index) => {
+    let li = existing.get(job.id);
+    if (!li) li = jobElement(job);
+    if (list.children[index] !== li) list.insertBefore(li, list.children[index] || null);
+
+    li.querySelector(".job-title").textContent = job.title || job.url;
+    setText(li.querySelector(".job-url"), job.title ? job.url : "");
+    const chip = li.querySelector(".chip");
+    const pct = job.progress != null ? ` ${Math.round(job.progress * 100)} %` : "";
+    chip.textContent = job.status + pct;
+    chip.className = "chip" + (ACTIVE.some((s) => job.status.startsWith(s)) ? " active" : job.status === "terminé" ? " ok" : job.status === "erreur" ? " err" : "");
+    const bar = li.querySelector(".bar");
+    bar.classList.toggle("hidden", job.progress == null);
+    bar.firstElementChild.style.width = `${(job.progress || 0) * 100}%`;
+    setText(li.querySelector(".source"), job.source ? `Source : ${job.source}` : "");
+    setText(li.querySelector(".note"), job.note);
+    setText(li.querySelector(".error"), job.error);
+    const actions = li.querySelector(".actions");
+    actions.classList.toggle("hidden", job.files.length < 2);
+    if (job.files.length >= 2) {
+      li.querySelector(".txt").href = `/files/${job.id}/0`;
+      li.querySelector(".srt").href = `/files/${job.id}/1`;
+      li.querySelector(".txt").title = job.files[0];
+    }
+  });
+
+  $("#empty").classList.toggle("hidden", state.jobs.length > 0);
+  const pending = state.jobs.some((j) => j.status === "en attente");
+  $("#stop").disabled = !state.busy && !pending;
+  $("#clear").disabled = !state.jobs.some((j) => ["terminé", "erreur", "annulé"].includes(j.status));
+}
+
+let timer = null;
+async function refresh(schedule = true) {
+  try {
+    state = await (await fetch("/api/state", { cache: "no-store" })).json();
+    $("#offline").classList.add("hidden");
+    renderModel();
+    renderJobs();
+  } catch {
+    $("#offline").classList.remove("hidden");
+  }
+  if (schedule) {
+    clearTimeout(timer);
+    timer = setTimeout(refresh, state && state.busy ? 700 : 1500);
+  }
+}
+
+$("#turbo").checked = pref("turbo", false);
+$("#auto-subs").checked = pref("auto_subs", false);
+$("#turbo").addEventListener("change", (e) => { savePref("turbo", e.target.checked); if (state) renderModel(); });
+$("#auto-subs").addEventListener("change", (e) => savePref("auto_subs", e.target.checked));
+
+$("#submit").addEventListener("click", async () => {
+  const urls = $("#urls").value.trim();
+  if (!urls) { toast("Colle au moins un lien"); return; }
+  if (await post("/api/jobs", { urls, turbo: $("#turbo").checked, auto_subs: $("#auto-subs").checked })) {
+    $("#urls").value = "";
+  }
+});
+$("#auto-mode").addEventListener("change", (e) => post("/api/settings", { auto_mode: e.target.checked }));
+$("#load").addEventListener("click", () => post("/api/model/load", { turbo: $("#turbo").checked }));
+$("#unload").addEventListener("click", () => post("/api/model/unload"));
+$("#stop").addEventListener("click", () => post("/api/stop"));
+$("#clear").addEventListener("click", () => post("/api/clear"));
+$("#open-folder").addEventListener("click", () => post("/api/open-folder"));
+
+$("#choose-folder").addEventListener("click", async () => {
+  const button = $("#choose-folder");
+  button.disabled = true;
+  toast("Choisis le dossier dans la fenêtre qui vient de s'ouvrir");
+  try {
+    const r = await fetch("/api/choose-folder", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    const data = await r.json().catch(() => ({}));
+    if (r.ok && data.out_dir) {
+      toast("Dossier de sortie : " + data.out_dir);
+    } else if (data.unavailable) {
+      // Pas de sélecteur natif (ex. Linux sans tkinter) : saisie du chemin
+      const typed = prompt("Chemin complet du dossier de sortie :", state ? state.out_dir : "");
+      if (typed) await post("/api/settings", { out_dir: typed });
+    } else if (!r.ok) {
+      toast(data.error || `Erreur ${r.status}`);
+    }
+  } catch {
+    toast("Serveur injoignable");
+  }
+  button.disabled = false;
+  refresh(false);
+});
+
+refresh();
+</script>
+</body>
+</html>
